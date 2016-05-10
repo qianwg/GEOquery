@@ -14,8 +14,4 @@ getGSEDataTables <- function(GSE) {
 		return(dTable)
 	})
     return(dTables)
-<<<<<<< HEAD
 }
-=======
-}
->>>>>>> master
