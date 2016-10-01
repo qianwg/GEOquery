@@ -1,5 +1,6 @@
 [![Travis Build Status](https://api.travis-ci.org/seandavi/GEOquery.svg?branch=master)](https://travis-ci.org/seandavi/GEOquery)
 [![codecov](https://codecov.io/gh/seandavi/GEOquery/branch/master/graph/badge.svg)](https://codecov.io/gh/seandavi/GEOquery)
+[![Project Status: Active - The project has reached a stable, usable state and is being actively developed.](http://www.repostatus.org/badges/latest/active.svg)](http://www.repostatus.org/#active)
 
 ## Installation
 
