@@ -95,7 +95,8 @@ getGEOMeta = function(geo) {
 
                             ))
                           })))
-        ret = data.frame(
+        ret = list(
+          details = data.frame(
             accession     = xml_attr(xml_find_first(dat,'/d1:MINiML/d1:Sample'),'iid'),
             gpl           = xml_attr(xml_find_first(dat,'/d1:MINiML/d1:Platform'),'iid'),
             organization  = xml_text(xml_find_first(dat,'/d1:MINiML/d1:Contributor/d1:Organization')),
@@ -105,7 +106,8 @@ getGEOMeta = function(geo) {
             submission_date= date(xml_text(xml_find_first(dat,'/d1:MINiML/d1:Sample/d1:Status/d1:Submission-Date'))),
             last_update   = date(xml_text(xml_find_first(dat,'/d1:MINiML/d1:Sample/d1:Status/d1:Last-Update-Date'))),
             release_date  = date(xml_text(xml_find_first(dat,'/d1:MINiML/d1:Sample/d1:Status/d1:Release-Date'))),
-            n_channels    = as.integer(xml_text(xml_find_first(dat,'/d1:MINiML/d1:Sample/d1:Channel-Count'))),
+            n_channels    = as.integer(xml_text(xml_find_first(dat,'/d1:MINiML/d1:Sample/d1:Channel-Count')))
+          ),
             channels      = data.frame(do.call(rbind,lapply(xml_find_all(dat,'/d1:MINiML/d1:Sample/d1:Channel'),
                                    function(channel) {
                                        return(list(
@@ -122,7 +124,15 @@ getGEOMeta = function(geo) {
                                            characteristics = sapply(xml_find_all(channel,'d1:Characteristics'),function(x) {str_trim(xml_text(x))}) %>%
                                              setNames(sapply(xml_find_all(channel,'d1:Characteristics'),function(x) {str_trim(xml_attrs(x,'tag'))})) %>% I()
                                        ))
-                                   })))
+                                   }))),
+          columns = data.frame(do.call(rbind,lapply(xml_find_all(dat,'/d1:MINiML/d1:Sample/d1:Data-Table/d1:Column'),
+                                                    function(column) {
+                                                      return(list(
+                                                        name = xml_text(xml_find_first(column,'d1:Name')),
+                                                        description = xml_text(xml_find_first(column,'d1:Description'))
+                                                        
+                                                      ))
+                                                    })))
                                
         )
         return(ret)
