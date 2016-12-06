@@ -1,6 +1,7 @@
 require(rentrez)
 require(purrr)
 require(lubridate)
+require(xml2)
 
 .docSumListConvert = function(x) {
     ret = data.frame(
@@ -85,16 +86,25 @@ fetchDocSums= function(res,retstart=1,retmax=100) {
 
 
 getGEOMeta = function(geo) {
-    .getGSMmeta = function(x) {
-        ret = list(
+    .getGSMmeta = function(dat) {
+      columns = data.frame(do.call(rbind,lapply(xml_find_all(dat,'/d1:MINiML/d1:Sample/d1:Data-Table/d1:Column'),
+                          function(column) {
+                            return(list(
+                              name = xml_text(xml_find_first(column,'d1:Name')),
+                              description = xml_text(xml_find_first(column,'d1:Description'))
+
+                            ))
+                          })))
+        ret = data.frame(
             accession     = xml_attr(xml_find_first(dat,'/d1:MINiML/d1:Sample'),'iid'),
             gpl           = xml_attr(xml_find_first(dat,'/d1:MINiML/d1:Platform'),'iid'),
+            organization  = xml_text(xml_find_first(dat,'/d1:MINiML/d1:Contributor/d1:Organization')),
             title         = xml_text(xml_find_first(dat,'/d1:MINiML/d1:Sample/d1:Title')),
-            description   = xml_text(xml_find_first(dat,'/d1:MINiML/d1:Sample/d1:Description')),
+            description   = xml_text(xml_find_first(dat,'/d1:MINiML/d1:Sample/d1:Description'),trim = TRUE),
             type          = xml_text(xml_find_first(dat,'/d1:MINiML/d1:Sample/d1:Type')),
-            submission_date= xml_text(xml_find_first(dat,'/d1:MINiML/d1:Sample/d1:Status/d1:Submission-Date')),
-            last_update   = xml_text(xml_find_first(dat,'/d1:MINiML/d1:Sample/d1:Status/d1:Last-Update--Date')),
-            release_date  = xml_text(xml_find_first(dat,'/d1:MINiML/d1:Sample/d1:Status/d1:Release-Date')),
+            submission_date= date(xml_text(xml_find_first(dat,'/d1:MINiML/d1:Sample/d1:Status/d1:Submission-Date'))),
+            last_update   = date(xml_text(xml_find_first(dat,'/d1:MINiML/d1:Sample/d1:Status/d1:Last-Update-Date'))),
+            release_date  = date(xml_text(xml_find_first(dat,'/d1:MINiML/d1:Sample/d1:Status/d1:Release-Date'))),
             n_channels    = as.integer(xml_text(xml_find_first(dat,'/d1:MINiML/d1:Sample/d1:Channel-Count'))),
             channels      = data.frame(do.call(rbind,lapply(xml_find_all(dat,'/d1:MINiML/d1:Sample/d1:Channel'),
                                    function(channel) {
@@ -112,25 +122,57 @@ getGEOMeta = function(geo) {
                                            characteristics = sapply(xml_find_all(channel,'d1:Characteristics'),function(x) {str_trim(xml_text(x))}) %>%
                                              setNames(sapply(xml_find_all(channel,'d1:Characteristics'),function(x) {str_trim(xml_attrs(x,'tag'))})) %>% I()
                                        ))
-                                   }))),
-            columns       = data.frame(do.call(rbind,lapply(xml_find_all(dat,'/d1:MINiML/d1:Sample/d1:Data-Table/d1:Column'),
-                                function(column) {
-                                  return(list(
-                                    name = xml_text(xml_find_first(column,'d1:Name')),
-                                    description = xml_text(xml_find_first(column,'d1:Description'))
-                                    
-                                  ))
-                                })))
+                                   })))
                                
         )
         return(ret)
     }
+    .getGSEmeta = function(dat) {
+      pubmed = as.integer(xml_text(xml_find_all(dat,'/d1:MINiML/d1:Series/d1:Pubmed-ID')))
+      pubmed = ifelse(length(pubmed)==0,NA,pubmed)
+      ret = data.frame(
+        accession     = xml_attr(xml_find_first(dat,'/d1:MINiML/d1:Series'),'iid'),
+        samples       = list(xml_text(xml_find_all(dat,'d1:Sample'))) %>% I(),
+        organization  = xml_text(xml_find_first(dat,'/d1:MINiML/d1:Contributor/d1:Organization')),
+        gpl           = xml_attr(xml_find_first(dat,'/d1:MINiML/d1:Platform'),'iid'),
+        title         = xml_text(xml_find_first(dat,'/d1:MINiML/d1:Series/d1:Title')),
+        summary       = xml_text(xml_find_first(dat,'/d1:MINiML/d1:Series/d1:Summary')),
+        overall_design= xml_text(xml_find_first(dat,'/d1:MINiML/d1:Series/d1:Overall-Design')),
+        type          = xml_text(xml_find_first(dat,'/d1:MINiML/d1:Series/d1:Type')),
+        pubmed        = pubmed,
+        submission_date= date(xml_text(xml_find_first(dat,'/d1:MINiML/d1:Series/d1:Status/d1:Submission-Date'))),
+        last_update   = date(xml_text(xml_find_first(dat,'/d1:MINiML/d1:Series/d1:Status/d1:Last-Update-Date'))),
+        release_date  = date(xml_text(xml_find_first(dat,'/d1:MINiML/d1:Series/d1:Status/d1:Release-Date')))
+      )
+      if(!is.data.frame(ret)) return(NULL)
+      return(ret)
+    }
+    .getGPLmeta = function(dat) {
+      ret = data.frame(
+        accession     = xml_attr(xml_find_first(dat,'/d1:MINiML/d1:Platform'),'iid'),
+        organization  = xml_text(xml_find_first(dat,'/d1:MINiML/d1:Contributor/d1:Organization')),
+        title         = xml_text(xml_find_first(dat,'/d1:MINiML/d1:Platform/d1:Title')),
+        description   = xml_text(xml_find_first(dat,'/d1:MINiML/d1:Platform/d1:Description')),
+        manufacturer  = xml_text(xml_find_first(dat,'/d1:MINiML/d1:Platform/d1:Manufacturer')),
+        technology    = xml_text(xml_find_first(dat,'/d1:MINiML/d1:Platform/d1:Technology')),
+        protocol      = xml_text(xml_find_first(dat,'/d1:MINiML/d1:Platform/d1:Manufacture-Protocol')),
+        submission_date= date(xml_text(xml_find_first(dat,'/d1:MINiML/d1:Platform/d1:Status/d1:Submission-Date'))),
+        last_update   = date(xml_text(xml_find_first(dat,'/d1:MINiML/d1:Platform/d1:Status/d1:Last-Update-Date'))),
+        release_date  = date(xml_text(xml_find_first(dat,'/d1:MINiML/d1:Platform/d1:Status/d1:Release-Date')))
+      )
+      if(!is.data.frame(ret)) return(NULL)
+      return(ret)
+    }
     geo = toupper(geo)
-    stopifnot(substr(geo,1,3) %in% c('GSE','GSM','GPL','GDS'))
+    stopifnot(substr(geo,1,3) %in% c('GSE','GSM','GPL'))
               
-    dat = read_xml(sprintf("https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=%s&view=full&targ=self&form=xml",geo))
+    dat = read_xml(sprintf("https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=%s&view=brief&targ=self&form=xml",geo))
     ret = switch(substr(geo,1,3),
                  GSM = .getGSMmeta(dat),
+                 GSE = .getGSEmeta(dat),
+                 GPL = .getGPLmeta(dat),
                  NA)
     return(ret)
 }
+
+
