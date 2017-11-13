@@ -1,21 +1,20 @@
 Package: GEOquery
 Type: Package
 Title: Get data from NCBI Gene Expression Omnibus (GEO)
-Version: 2.46.4
+Version: 2.46.5
 Date: 2017-11-13
 Author: Sean Davis <sdavis2@mail.nih.gov>
 Maintainer: Sean Davis <sdavis2@mail.nih.gov>
 BugReports: https://github.com/seandavi/GEOquery/issues/new
 Depends: methods, Biobase
-Imports: XML,
-    RCurl,
-    httr,
+Imports: httr,
     readr,
     xml2,
     dplyr,
     tidyr,
-    magrittr
-Suggests: limma, knitr, rmarkdown, RUnit, BiocGenerics,
+    magrittr,
+    limma
+Suggests: knitr, rmarkdown, BiocGenerics,
     testthat, covr
 VignetteBuilder: knitr
 URL: https://github.com/seandavi/GEOquery
