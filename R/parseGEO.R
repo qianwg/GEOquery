@@ -476,9 +476,9 @@ parseGSEMatrix <- function(fname,AnnotGPL=FALSE,destdir=tempdir(),getGPL=TRUE) {
                                           sep="\t",header=FALSE)
     tmptmp <- t(tmpdat)
     sampledat <- rbind(data.frame(),tmptmp[-1,])
-    rownames(sampledat) = sampledat[['geo_accession']]
     colnames(sampledat) <- make.unique(sub('!Sample_','',as.character(tmpdat[,1])))
     sampledat[['geo_accession']]=as.character(sampledat[['geo_accession']])
+    rownames(sampledat) = sampledat[['geo_accession']]
     ## Lots of GSEs now use "characteristics_ch1" and
     ## "characteristics_ch2" for key-value pairs of
     ## annotation. If that is the case, this simply
@@ -491,8 +491,7 @@ parseGSEMatrix <- function(fname,AnnotGPL=FALSE,destdir=tempdir(),getGPL=TRUE) {
             # these next two lines avoid warnings due
             # to columns having different factor levels
             # (attributes).
-            apply(2,as.character) %>%
-            as.data.frame(stringsAsFactors = FALSE) %>%
+            mutate_all(as.character) %>%
             tidyr::gather(characteristics, kvpair, -accession) %>%
             dplyr::filter(!grepl(':',kvpair) && !is.na(kvpair))
         # Thx to Mike Smith (@grimbough) for this code
@@ -548,7 +547,7 @@ parseGSEMatrix <- function(fname,AnnotGPL=FALSE,destdir=tempdir(),getGPL=TRUE) {
         }
         ## Fixed bug caused by an ID being "NA" in GSE15197, for example
         tmpnames[is.na(tmpnames)]="NA"
-        rownames(dat) <- tmpnames
+        rownames(dat) <- make.unique(tmpnames)
         ## Apparently, NCBI GEO uses case-insensitive matching
         ## between platform IDs and series ID Refs ???
         dat <- dat[match(tolower(rownames(datamat)),tolower(rownames(dat))),]
